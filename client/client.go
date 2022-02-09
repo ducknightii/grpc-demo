@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ducknightii/grpc-demo/pb"
+	"github.com/ducknightii/grpc-demo/pb/helloworld"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var client pb.GreeterClient
+var client helloworld.GreeterClient
 
 func main() {
 	conn, err := grpc.Dial("127.0.0.1:30000", grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -22,14 +22,14 @@ func main() {
 	}
 	defer conn.Close()
 
-	client = pb.NewGreeterClient(conn)
+	client = helloworld.NewGreeterClient(conn)
 
 	go func() {
 		// /debug/pprof/
 		http.ListenAndServe(":30002", nil)
 	}()
 
-	time.Sleep(time.Second * 300)
+	time.Sleep(time.Second * 10)
 
 	fmt.Println("request start...")
 	var wg sync.WaitGroup
@@ -43,7 +43,7 @@ func main() {
 	}
 	wg.Wait()
 
-	time.Sleep(time.Second * 200)
+	time.Sleep(time.Second * 20)
 
 	return
 }
@@ -54,7 +54,7 @@ func sayHello(name string) {
 
 	log.Printf("time: %s, client request: %s\n", time.Now(), name)
 
-	r, err := client.SayHello(ctx, &pb.HelloRequest{Name: name})
+	r, err := client.SayHello(ctx, &helloworld.HelloRequest{Name: name})
 	if err != nil {
 		log.Printf("time: %s, grpc.SayHello err: %+v\n", time.Now(), err)
 		return

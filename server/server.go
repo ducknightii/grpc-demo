@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/ducknightii/grpc-demo/pb"
+	"github.com/ducknightii/grpc-demo/pb/helloworld"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
 	"log"
 	"net"
@@ -21,22 +22,53 @@ func main() {
 
 	grpc.EnableTracing = true
 	s := grpc.NewServer()
-	pb.RegisterGreeterServer(s, &server{})
+	helloworld.RegisterGreeterServer(s, &server{})
 	go startTrace()
-	log.Println("server start...")
-	err = s.Serve(lis)
-	panic(err)
+	errCh := make(chan error)
+	go func() {
+		// grpc
+		log.Println("server start  on http://0.0.0.0:30000")
+		errCh <- s.Serve(lis)
+	}()
+	// Create a client connection to the gRPC server we just started
+	// This is where the gRPC-Gateway proxies the requests
+	conn, err := grpc.DialContext(
+		context.Background(),
+		"0.0.0.0:30000",
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalln("Failed to dial server:", err)
+	}
+
+	gwmux := runtime.NewServeMux()
+	err = helloworld.RegisterGreeterHandler(context.Background(), gwmux, conn)
+	gwServer := &http.Server{
+		Addr:    ":30003",
+		Handler: gwmux,
+	}
+
+	go func() {
+		log.Println("Serving gRPC-Gateway on http://0.0.0.0:30003")
+		errCh <- gwServer.ListenAndServe()
+	}()
+
+	select {
+	case err = <-errCh:
+		panic(err)
+	}
 }
 
 type server struct {
-	pb.UnimplementedGreeterServer
+	helloworld.UnimplementedGreeterServer
 }
 
-func (s *server) SayHello(ctx context.Context, req *pb.HelloRequest) (res *pb.HelloReply, err error) {
+func (s *server) SayHello(ctx context.Context, req *helloworld.HelloRequest) (res *helloworld.HelloReply, err error) {
 
 	p, ok := peer.FromContext(ctx)
 
-	res = new(pb.HelloReply)
+	res = new(helloworld.HelloReply)
 	res.Message = "Hello " + req.Name
 	gap := 20 * time.Duration(time.Now().Nanosecond()/(1000*1000*10))
 	time.Sleep(gap * time.Millisecond)
@@ -54,7 +86,5 @@ func startTrace() {
 		return true, true
 	}
 	go http.ListenAndServe(":30001", nil)
-	log.Println("trace start...")
-	grpclog.Infoln("Trace listen on 30001")
-
+	log.Println("trace start on http://0.0.0.0:30001")
 }
