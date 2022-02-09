@@ -29,11 +29,11 @@ func main() {
 		http.ListenAndServe(":30002", nil)
 	}()
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 300)
 
 	fmt.Println("request start...")
 	var wg sync.WaitGroup
-	for i := 0; i < 30; i++ {
+	for i := 0; i < 1; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -43,7 +43,7 @@ func main() {
 	}
 	wg.Wait()
 
-	time.Sleep(time.Second * 100)
+	time.Sleep(time.Second * 200)
 
 	return
 }
