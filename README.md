@@ -11,5 +11,6 @@
   - 客户端超时以及主动断开连接 `DeadlineExceeded desc = context deadline exceeded=INFO`
 - metadata 作用
   - 可以获取ip以及一些header信息
-- http grpc转换
-- 负载均衡：k8s svc 方案
+- http grpc转换: grpc-gateway
+- 采用 buf 工具生成 *.go 文件存在一定问题（protoc版本）
+- 负载均衡：k8s svc 方案?

@@ -16,7 +16,7 @@ syntax = "proto3";
 
 option go_package = "github.com/ducknightii/grpc-demo/pb/helloworld;helloworld";
 
-package pb.helloworld;
+package helloworld;
 
 import "google/api/annotations.proto";
 
